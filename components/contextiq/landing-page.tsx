@@ -328,6 +328,24 @@ export function LandingPage() {
             </div>
             Enter Walk-In Experience <ArrowRight size={18} />
           </Link>
+          <div className="mt-8 flex items-center justify-center gap-4">
+            <Link
+              href={"/privacy-policy" as Route}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-[12px] font-bold uppercase tracking-[0.08em] text-slate-600 transition-colors hover:bg-slate-50"
+            >
+              Privacy Policy
+            </Link>
+            <Link
+              href={"/terms-of-service" as Route}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-[12px] font-bold uppercase tracking-[0.08em] text-slate-600 transition-colors hover:bg-slate-50"
+            >
+              Terms of Service
+            </Link>
+          </div>
         </div>
       </div>
     </div>

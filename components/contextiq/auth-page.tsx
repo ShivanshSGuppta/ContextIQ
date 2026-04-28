@@ -118,6 +118,24 @@ export function AuthPage({
             {error}
           </p>
         ) : null}
+        <div className="mt-8 flex items-center justify-center gap-3 border-t border-slate-200 pt-6">
+          <Link
+            href={"/privacy-policy" as Route}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-slate-500 transition-colors hover:bg-slate-50"
+          >
+            Privacy Policy
+          </Link>
+          <Link
+            href={"/terms-of-service" as Route}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-slate-500 transition-colors hover:bg-slate-50"
+          >
+            Terms of Service
+          </Link>
+        </div>
       </div>
     </div>
   );
