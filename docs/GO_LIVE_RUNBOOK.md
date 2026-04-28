@@ -79,8 +79,7 @@ Important for Vercel cron auth:
 ## 8) Cron schedules
 
 This repo already defines cron schedules in `/Users/ssg/Desktop/ContextIQ/vercel.json`:
-- `/api/cron/sync-gmail` every 30 minutes
-- `/api/cron/sync-linkedin` every 12 hours
+- `/api/cron/sync-integrations` daily at 02:00 UTC
 
 Deploying with this file registers cron jobs.
 
@@ -102,10 +101,16 @@ Deploying with this file registers cron jobs.
    - Hydra-backed memories appear in right rail and output traces.
    - Composer actions still work.
 8. Manually call cron endpoints once with bearer token and confirm `200`:
+   - `/api/cron/sync-integrations`
    - `/api/cron/sync-gmail`
    - `/api/cron/sync-linkedin`
 
 Example manual cron check:
+
+```bash
+curl -i -H "Authorization: Bearer <CRON_SYNC_SECRET>" \
+  https://<your-prod-domain>/api/cron/sync-integrations
+```
 
 ```bash
 curl -i -H "Authorization: Bearer <CRON_SYNC_SECRET>" \
@@ -130,6 +135,7 @@ curl -i -H "Authorization: Bearer <CRON_SYNC_SECRET>" \
   - `/auth/linkedin/start`
   - `/auth/linkedin/callback`
 - Cron routes:
+  - `/api/cron/sync-integrations`
   - `/api/cron/sync-gmail`
   - `/api/cron/sync-linkedin`
 
