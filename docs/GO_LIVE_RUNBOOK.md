@@ -1,148 +1,118 @@
-# ContextIQ Go-Live Runbook (Env -> Deployment)
+# ContextIQ Master Go-Live Runbook (One-Time Manual Setup)
 
-Use this exact order per environment:
-1. Supabase project + migrations
-2. OAuth providers (Google + LinkedIn)
-3. Vercel project + env vars
-4. Deploy
-5. Post-deploy verification
+This is the single setup artifact for running ContextIQ as an AI-native customer workspace.
 
-## 1) Create Supabase project
+## 1) Supabase Project + SQL Migrations
 
-Create a new Supabase project, then copy from `Project Settings -> API`:
+Create a Supabase project and apply migrations in this exact order:
+
+1. `supabase/migrations/20260425_contextiq_init.sql`
+2. `supabase/migrations/20260427_gmail_integrations.sql`
+3. `supabase/migrations/20260427_linkedin_integrations.sql`
+4. `supabase/migrations/20260427_integration_action_events.sql`
+5. `supabase/migrations/20260430_ai_native_workspace.sql`
+
+Required API values:
+
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
 
-## 2) Apply SQL migrations (order matters)
+## 2) Auth Providers (Workspace Login)
 
-Run these files in Supabase SQL editor, in this order:
-1. `/Users/ssg/Desktop/ContextIQ/supabase/migrations/20260425_contextiq_init.sql`
-2. `/Users/ssg/Desktop/ContextIQ/supabase/migrations/20260427_gmail_integrations.sql`
-3. `/Users/ssg/Desktop/ContextIQ/supabase/migrations/20260427_linkedin_integrations.sql`
-4. `/Users/ssg/Desktop/ContextIQ/supabase/migrations/20260427_integration_action_events.sql`
+Enable these Supabase auth providers:
 
-## 3) Configure Supabase Auth URLs
+- Google OAuth
+- Azure (Microsoft OAuth)
 
-In `Authentication -> URL Configuration`:
-- `Site URL = https://<your-prod-domain>`
-- Add redirect URL: `https://<your-prod-domain>/auth/callback`
+Set `Site URL` and callback allow-list:
 
-## 4) Configure Google OAuth (login + Gmail scopes)
+- `https://<your-domain>/auth/callback`
 
-In Google Cloud:
-- Create OAuth app (Web).
-- Add authorized redirect URI:
-  - `https://<your-supabase-project-ref>.supabase.co/auth/v1/callback`
+## 3) Integration Provider Apps
 
-In Supabase `Authentication -> Providers -> Google`:
-- Enable Google provider.
-- Paste Google Client ID/Secret.
+Create provider apps and register redirect/webhook URLs for:
 
-Google app must be published (or correct test users added) for your target users.
+- Gmail/Google APIs
+- Microsoft Graph (Outlook)
+- Slack
+- Twilio (SMS/WhatsApp)
+- LinkedIn
+- Google Calendar
+- Zoom
+- HubSpot
+- Salesforce
+- Intercom
+- Notion
+- Resend
 
-## 5) Configure LinkedIn OAuth
+Important: Some providers are approval-gated (restricted scopes, product access, business verification). ContextIQ handles these as `pending_approval` until production access is granted.
 
-In LinkedIn Developer app:
-- Enable Sign In with LinkedIn (OIDC).
-- Add redirect URL:
-  - `https://<your-prod-domain>/auth/linkedin/callback`
-- Copy LinkedIn Client ID and Client Secret.
+## 4) Vercel Environment Variables
 
-## 6) Create Vercel project
+Set all values from `.env.example` in Vercel (`Production`, optionally `Preview`):
 
-- Import repository into Vercel.
-- Keep default Next.js build settings.
-- Attach production domain (or use Vercel domain).
+- Supabase: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+- Core: `HYDRADB_API_KEY`, `HYDRADB_BASE_URL`, `GEMINI_API_KEY`, `GEMINI_MODEL`, `APP_BASE_URL`, `INTEGRATION_TOKEN_SECRET`
+- Auth/Providers:
+  - `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`
+  - `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`
+  - `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET`
+  - `SLACK_CLIENT_ID`, `SLACK_CLIENT_SECRET`, `SLACK_SIGNING_SECRET`
+  - `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`
+  - `HUBSPOT_CLIENT_ID`, `HUBSPOT_CLIENT_SECRET`
+  - `SALESFORCE_CLIENT_ID`, `SALESFORCE_CLIENT_SECRET`
+  - `INTERCOM_ACCESS_TOKEN`
+  - `NOTION_CLIENT_ID`, `NOTION_CLIENT_SECRET`
+  - `RESEND_API_KEY`
+  - `ZOOM_CLIENT_ID`, `ZOOM_CLIENT_SECRET`
+- Jobs/Security: `CRON_SYNC_SECRET`, `CRON_SECRET` (set same value)
 
-## 7) Set Vercel environment variables
+## 5) Webhooks + Cron
 
-Set all of these in Vercel (Production, and Preview if needed):
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `HYDRADB_API_KEY`
-- `HYDRADB_BASE_URL`
-- `GEMINI_API_KEY`
-- `GEMINI_MODEL`
-- `APP_BASE_URL=https://<your-prod-domain>`
-- `INTEGRATION_TOKEN_SECRET=<long-random-secret>`
-- `GOOGLE_OAUTH_CLIENT_ID=<google-client-id>`
-- `GOOGLE_OAUTH_CLIENT_SECRET=<google-client-secret>`
-- `LINKEDIN_CLIENT_ID=<linkedin-client-id>`
-- `LINKEDIN_CLIENT_SECRET=<linkedin-client-secret>`
-- `CRON_SYNC_SECRET=<long-random-secret>`
+Configure provider webhooks to:
 
-Important for Vercel cron auth:
-- Also set `CRON_SECRET` to the same value as `CRON_SYNC_SECRET`.
+- `POST /api/webhooks/:provider`
 
-## 8) Cron schedules
+ContextIQ integration APIs:
 
-This repo already defines cron schedules in `/Users/ssg/Desktop/ContextIQ/vercel.json`:
-- `/api/cron/sync-integrations` daily at 02:00 UTC
+- `POST /api/integrations/:provider/connect`
+- `POST /api/integrations/:provider/sync`
+- `POST /api/integrations/:provider/writeback`
+- `POST /api/actions/execute`
+- `POST /api/command/search`
 
-Deploying with this file registers cron jobs.
+Cron route (daily unified sync):
 
-## 9) Deploy
+- `GET /api/cron/sync-integrations`
 
-- Trigger production deployment in Vercel.
-- Confirm build succeeds.
+Use `Authorization: Bearer <CRON_SYNC_SECRET>`.
 
-## 10) Post-deploy functional checks
+## 6) Approval-Gated Providers
 
-1. Open `https://<your-prod-domain>`.
-2. Sign in via Google at `/auth/sign-in`.
-3. Confirm workspace bootstrap and `/overview` load.
-4. Click `Connect Gmail` and complete consent.
-5. Click `Connect LinkedIn` and complete consent.
-6. Trigger `Sync` for Gmail and LinkedIn.
-7. Verify:
-   - New `activities` and `notes` appear.
-   - Hydra-backed memories appear in right rail and output traces.
-   - Composer actions still work.
-8. Manually call cron endpoints once with bearer token and confirm `200`:
-   - `/api/cron/sync-integrations`
-   - `/api/cron/sync-gmail`
-   - `/api/cron/sync-linkedin`
+If a provider is not fully approved, ContextIQ must remain usable:
 
-Example manual cron check:
+- provider status shown as `pending_approval`
+- sync/writeback returns deterministic pending response
+- no tab breaks due to unavailable provider scope
 
-```bash
-curl -i -H "Authorization: Bearer <CRON_SYNC_SECRET>" \
-  https://<your-prod-domain>/api/cron/sync-integrations
-```
+## 7) Go-Live Verification Matrix
 
-```bash
-curl -i -H "Authorization: Bearer <CRON_SYNC_SECRET>" \
-  https://<your-prod-domain>/api/cron/sync-gmail
-```
+Verify end-to-end:
 
-```bash
-curl -i -H "Authorization: Bearer <CRON_SYNC_SECRET>" \
-  https://<your-prod-domain>/api/cron/sync-linkedin
-```
+1. Auth login with Google and Microsoft.
+2. Command Center returns search results from normalized or fallback records.
+3. Accounts and People surfaces load.
+4. Conversations and Meetings surfaces show imported or fallback activity.
+5. Actions tab records action executions and writeback status.
+6. Notes/Briefs renders notes + documents.
+7. Activity/Audit shows timeline events, action executions, and sync runs.
+8. Hydra-backed memories still render in rail and generated outputs.
+9. Provider readiness reflects `connected` vs `pending_approval`.
 
-## 11) Production sanity/security checks
+## 8) Post-Deploy Security Checks
 
-- Confirm no secrets are exposed client-side.
-- Confirm RLS blocks cross-workspace access.
-- Confirm integration token fields are encrypted values, not plaintext.
-
-## Operational Interfaces
-
-- Auth callback: `/auth/callback`
-- LinkedIn connect routes:
-  - `/auth/linkedin/start`
-  - `/auth/linkedin/callback`
-- Cron routes:
-  - `/api/cron/sync-integrations`
-  - `/api/cron/sync-gmail`
-  - `/api/cron/sync-linkedin`
-
-## Acceptance Checklist
-
-- Google login works in production.
-- Gmail + LinkedIn connect works.
-- Integration sync writes to Supabase and Hydra-backed recall surfaces.
-- Cron runs succeed with auth.
-- After one-time migrations + OAuth provider setup + cron config, rollout is env + deploy.
+- Confirm no secret is exposed in client bundles.
+- Confirm RLS isolation on all v1 and v2 tables.
+- Confirm encrypted token fields are not stored in plaintext.
+- Confirm webhook and cron endpoints reject unauthorized requests.

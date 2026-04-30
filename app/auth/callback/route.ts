@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
   const env = getPublicEnv();
   const code = request.nextUrl.searchParams.get("code");
   const intent = request.nextUrl.searchParams.get("intent");
+  const provider = request.nextUrl.searchParams.get("provider");
   const nextPath = request.nextUrl.searchParams.get("next");
   const safeNextPath = nextPath?.startsWith("/") ? nextPath : "/overview";
   let response = NextResponse.redirect(new URL(safeNextPath, request.url));
@@ -69,7 +70,11 @@ export async function GET(request: NextRequest) {
   const providerToken = providerSession?.provider_token as string | undefined;
   const providerRefreshToken = providerSession?.provider_refresh_token as string | undefined;
 
-  if (providerToken && (intent === "gmail_connect" || intent === "sign_in")) {
+  if (
+    providerToken &&
+    provider === "google" &&
+    (intent === "gmail_connect" || intent === "sign_in")
+  ) {
     await upsertGmailIntegrationTokens({
       workspaceId: workspace.id,
       userId: user.id,

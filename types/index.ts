@@ -318,3 +318,223 @@ export interface GmailSendResult {
   label_ids: string[];
   generated_output_id: string;
 }
+
+export type IntegrationProvider =
+  | "gmail"
+  | "outlook"
+  | "slack"
+  | "twilio"
+  | "linkedin"
+  | "google_calendar"
+  | "zoom"
+  | "hubspot"
+  | "salesforce"
+  | "intercom"
+  | "notion"
+  | "resend";
+
+export type IntegrationConnectionStatus =
+  | "connected"
+  | "pending_approval"
+  | "error"
+  | "disconnected";
+
+export interface IntegrationCapability {
+  key:
+    | "search"
+    | "read"
+    | "sync"
+    | "draft"
+    | "send"
+    | "writeback"
+    | "webhook_ingest";
+  supported: boolean;
+  reason?: string | null;
+}
+
+export interface IntegrationConnection {
+  id: string;
+  workspace_id: string;
+  owner_user_id: string;
+  provider: IntegrationProvider;
+  display_name: string | null;
+  status: IntegrationConnectionStatus;
+  capabilities: IntegrationCapability[];
+  permission_scope: string | null;
+  source_provider: string;
+  source_object_type: string;
+  source_object_id: string;
+  dedupe_key: string;
+  raw_payload_ref: string | null;
+  normalized_payload: Record<string, unknown>;
+  embedding_status: string;
+  synced_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface IntegrationSyncRun {
+  id: string;
+  workspace_id: string;
+  owner_user_id: string;
+  integration_connection_id: string | null;
+  provider: IntegrationProvider;
+  status: "started" | "ok" | "partial" | "error";
+  imported_count: number;
+  skipped_count: number;
+  failed_count: number;
+  details: Record<string, unknown>;
+  source_provider: string;
+  source_object_type: string;
+  source_object_id: string;
+  dedupe_key: string;
+  raw_payload_ref: string | null;
+  normalized_payload: Record<string, unknown>;
+  embedding_status: string;
+  permission_scope: string | null;
+  synced_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UnifiedObjectRef {
+  entity_type:
+    | "organization"
+    | "person"
+    | "conversation"
+    | "message"
+    | "meeting"
+    | "deal"
+    | "ticket"
+    | "task"
+    | "note"
+    | "document"
+    | "activity"
+    | "generated_output";
+  entity_id: string;
+  provider?: IntegrationProvider | null;
+}
+
+export interface IdentityAlias {
+  id: string;
+  workspace_id: string;
+  owner_user_id: string | null;
+  person_id: string;
+  provider: IntegrationProvider;
+  alias_type: string;
+  alias_value: string;
+  source_provider: string;
+  source_object_type: string;
+  source_object_id: string;
+  dedupe_key: string;
+  raw_payload_ref: string | null;
+  normalized_payload: Record<string, unknown>;
+  embedding_status: string;
+  permission_scope: string | null;
+  synced_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TimelineEvent {
+  id: string;
+  workspace_id: string;
+  owner_user_id: string | null;
+  organization_id: string | null;
+  person_id: string | null;
+  event_type: string;
+  summary: string;
+  occurred_at: string;
+  source_provider: string;
+  source_object_type: string;
+  source_object_id: string;
+  dedupe_key: string;
+  raw_payload_ref: string | null;
+  normalized_payload: Record<string, unknown>;
+  embedding_status: string;
+  permission_scope: string | null;
+  synced_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ActionExecution {
+  id: string;
+  workspace_id: string;
+  owner_user_id: string;
+  action_type: string;
+  source_entity_type: string | null;
+  source_entity_id: string | null;
+  writeback_provider: IntegrationProvider | null;
+  writeback_ref: string | null;
+  input_payload: Record<string, unknown>;
+  output_payload: Record<string, unknown>;
+  ai_generated: boolean;
+  approval_state: "auto_executed" | "approved" | "rejected";
+  source_provider: string;
+  source_object_type: string;
+  source_object_id: string;
+  dedupe_key: string;
+  raw_payload_ref: string | null;
+  normalized_payload: Record<string, unknown>;
+  embedding_status: string;
+  permission_scope: string | null;
+  synced_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProviderReadinessStatus {
+  provider: IntegrationProvider;
+  status: IntegrationConnectionStatus;
+  capabilities: IntegrationCapability[];
+  last_synced_at: string | null;
+  message: string;
+}
+
+export interface CommandSearchRequest {
+  workspaceId: string;
+  query: string;
+  accountId?: string | null;
+  personId?: string | null;
+  timeframeDays?: number;
+  limit?: number;
+}
+
+export interface CommandSearchHit {
+  id: string;
+  type: UnifiedObjectRef["entity_type"];
+  title: string;
+  snippet: string;
+  provider?: IntegrationProvider | null;
+  occurredAt?: string | null;
+  relevance: number;
+  ref: UnifiedObjectRef;
+}
+
+export interface CommandSearchResponse {
+  query: string;
+  hits: CommandSearchHit[];
+}
+
+export interface CrossToolActionRequest {
+  workspaceId: string;
+  actionType:
+    | "send_email"
+    | "draft_email"
+    | "post_slack"
+    | "create_calendar_event"
+    | "reply_intercom"
+    | "create_crm_task"
+    | "update_crm_record"
+    | "send_sms"
+    | "create_notion_brief";
+  targetAccountId?: string | null;
+  targetPersonId?: string | null;
+  payload: Record<string, unknown>;
+}
+
+export interface CrossToolActionResponse {
+  actionExecution: ActionExecution;
+  providerStatus: ProviderReadinessStatus;
+}

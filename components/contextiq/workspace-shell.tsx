@@ -6,6 +6,8 @@ import {
   Briefcase,
   ChevronDown,
   ChevronRight,
+  Command,
+  MessageSquare,
   Link2,
   Mail,
   LayoutDashboard,
@@ -13,6 +15,10 @@ import {
   Settings,
   Users,
   Activity,
+  CalendarDays,
+  Zap,
+  NotebookPen,
+  ShieldCheck,
 } from "lucide-react";
 
 import { ContextIQLogo } from "@/components/contextiq/logo";
@@ -30,6 +36,12 @@ import type {
 
 const navItems = [
   {
+    href: "/command-center" as Route,
+    label: "Command Center",
+    icon: Command,
+    view: "command_center",
+  },
+  {
     href: "/overview" as Route,
     label: "Overview",
     icon: LayoutDashboard,
@@ -43,12 +55,52 @@ const navItems = [
     view: "contacts",
   },
   {
+    href: "/people" as Route,
+    label: "People",
+    icon: Users,
+    view: "people",
+  },
+  {
+    href: "/conversations" as Route,
+    label: "Conversations",
+    icon: MessageSquare,
+    view: "conversations",
+  },
+  {
+    href: "/meetings" as Route,
+    label: "Meetings",
+    icon: CalendarDays,
+    view: "meetings",
+  },
+  {
+    href: "/actions" as Route,
+    label: "Actions",
+    icon: Zap,
+    view: "actions",
+  },
+  {
+    href: "/notes-briefs" as Route,
+    label: "Notes / Briefs",
+    icon: NotebookPen,
+    view: "notes_briefs",
+  },
+  {
+    href: "/activity-audit" as Route,
+    label: "Activity / Audit",
+    icon: ShieldCheck,
+    view: "activity_audit",
+  },
+  {
     href: "/activity" as Route,
-    label: "Activity Stream",
+    label: "Activity Stream (Legacy)",
     icon: Activity,
     view: "activity",
   },
 ];
+
+const walkInNavItems = navItems.filter((item) =>
+  ["overview", "accounts", "contacts", "activity"].includes(item.view),
+);
 
 export function WorkspaceShell({
   activeView,
@@ -63,7 +115,18 @@ export function WorkspaceShell({
   linkedInStatus = null,
   children,
 }: {
-  activeView: "overview" | "accounts" | "contacts" | "activity";
+  activeView:
+    | "command_center"
+    | "overview"
+    | "accounts"
+    | "contacts"
+    | "people"
+    | "conversations"
+    | "meetings"
+    | "actions"
+    | "notes_briefs"
+    | "activity_audit"
+    | "activity";
   headerLabel: string;
   accounts: Account[];
   profileName: string;
@@ -75,6 +138,7 @@ export function WorkspaceShell({
   linkedInStatus?: LinkedInIntegrationStatus | null;
   children: ReactNode;
 }) {
+  const effectiveNavItems = basePath === "/walk-in" ? walkInNavItems : navItems;
   const gmailConnected = Boolean(gmailStatus?.connected);
   const linkedInConnected = Boolean(linkedInStatus?.connected);
 
@@ -91,7 +155,7 @@ export function WorkspaceShell({
 
         <div className="flex-1 overflow-y-auto p-3">
           <div className="space-y-1">
-            {navItems.map((item) =>
+            {effectiveNavItems.map((item) =>
               item.href === null ? (
                 <div
                   key={item.view}

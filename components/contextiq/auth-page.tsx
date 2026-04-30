@@ -27,7 +27,7 @@ export function AuthPage({
         const { error: authError } = await supabase.auth.signInWithOAuth({
           provider: "google",
           options: {
-            redirectTo: `${window.location.origin}/auth/callback?intent=${intent}&next=${encodeURIComponent(returnTo)}`,
+            redirectTo: `${window.location.origin}/auth/callback?intent=${intent}&provider=google&next=${encodeURIComponent(returnTo)}`,
             queryParams: {
               access_type: "offline",
               prompt: "consent",
@@ -43,6 +43,31 @@ export function AuthPage({
         }
       } catch {
         setError("Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.");
+      }
+    });
+  };
+
+  const handleMicrosoft = () => {
+    startTransition(async () => {
+      setError(null);
+
+      try {
+        const supabase = getSupabaseBrowserClient();
+        const { error: authError } = await supabase.auth.signInWithOAuth({
+          provider: "azure",
+          options: {
+            redirectTo: `${window.location.origin}/auth/callback?intent=sign_in&provider=microsoft&next=${encodeURIComponent(returnTo)}`,
+            scopes: "openid profile email",
+          },
+        });
+
+        if (authError) {
+          setError(authError.message);
+        }
+      } catch {
+        setError(
+          "Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.",
+        );
       }
     });
   };
@@ -95,6 +120,17 @@ export function AuthPage({
             </svg>
             {intent === "gmail_connect" ? "Connect Google + Gmail" : "Continue with Google"}
           </button>
+
+          {intent === "sign_in" ? (
+            <button
+              type="button"
+              onClick={handleMicrosoft}
+              disabled={isPending}
+              className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-[14px] font-bold text-[#0F172A] shadow-sm transition-colors hover:bg-slate-50 disabled:opacity-60"
+            >
+              Continue with Microsoft
+            </button>
+          ) : null}
 
           <div className="flex items-center gap-3">
             <div className="h-px flex-1 bg-slate-200" />

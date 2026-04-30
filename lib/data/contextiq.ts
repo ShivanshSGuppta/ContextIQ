@@ -2,6 +2,7 @@ import { cache } from "react";
 
 import { requireSessionUser } from "@/lib/auth/session";
 import { getGmailIntegrationStatus } from "@/lib/gmail/integration-store";
+import { getWorkspaceProviderReadiness } from "@/lib/integrations/service";
 import { getLinkedInIntegrationStatus } from "@/lib/linkedin/integration-store";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { formatDateTime, formatRelativeDate } from "@/lib/utils";
@@ -15,8 +16,10 @@ import type {
   LinkedInIntegrationStatus,
   Note,
   OverviewCardSignal,
+  ProviderReadinessStatus,
   Profile,
   RecalledMemory,
+  TimelineEvent,
   TimelineItem,
   Workspace,
   WorkspaceOverviewData,
@@ -637,4 +640,157 @@ export function deriveRecentMemorySignals(
   });
 
   return [...noteSignals, ...activitySignals].slice(0, 4);
+}
+
+export async function getProviderReadinessData(): Promise<ProviderReadinessStatus[]> {
+  const { workspace } = await getWorkspaceContext();
+  return getWorkspaceProviderReadiness({ workspaceId: workspace.id });
+}
+
+export async function getPeopleSurfaceData() {
+  const { workspace } = await getWorkspaceContext();
+  const supabase = await getSupabaseServerClient();
+
+  const [contactsResult, peopleResult, aliasesResult] = await Promise.all([
+    supabase
+      .from("contacts")
+      .select("*")
+      .eq("workspace_id", workspace.id)
+      .order("updated_at", { ascending: false })
+      .limit(100),
+    supabase
+      .from("people")
+      .select("*")
+      .eq("workspace_id", workspace.id)
+      .order("updated_at", { ascending: false })
+      .limit(100),
+    supabase
+      .from("identity_aliases")
+      .select("*")
+      .eq("workspace_id", workspace.id)
+      .order("updated_at", { ascending: false })
+      .limit(200),
+  ]);
+
+  return {
+    contacts: (contactsResult.data ?? []) as Contact[],
+    people: (peopleResult.data ?? []) as Array<Record<string, unknown>>,
+    aliases: (aliasesResult.data ?? []) as Array<Record<string, unknown>>,
+  };
+}
+
+export async function getConversationsSurfaceData() {
+  const { workspace } = await getWorkspaceContext();
+  const supabase = await getSupabaseServerClient();
+
+  const [conversationsResult, messagesResult, activitiesResult] = await Promise.all([
+    supabase
+      .from("conversations")
+      .select("*")
+      .eq("workspace_id", workspace.id)
+      .order("last_message_at", { ascending: false })
+      .limit(50),
+    supabase
+      .from("messages")
+      .select("*")
+      .eq("workspace_id", workspace.id)
+      .order("sent_at", { ascending: false })
+      .limit(100),
+    supabase
+      .from("activities")
+      .select("*")
+      .eq("workspace_id", workspace.id)
+      .or("activity_type.eq.email_sent,activity_type.eq.email_received")
+      .order("occurred_at", { ascending: false })
+      .limit(30),
+  ]);
+
+  return {
+    conversations: (conversationsResult.data ?? []) as Array<Record<string, unknown>>,
+    messages: (messagesResult.data ?? []) as Array<Record<string, unknown>>,
+    legacyEmailActivities: (activitiesResult.data ?? []) as ActivityRecord[],
+  };
+}
+
+export async function getMeetingsSurfaceData() {
+  const { workspace } = await getWorkspaceContext();
+  const supabase = await getSupabaseServerClient();
+
+  const [meetingsResult, activitiesResult] = await Promise.all([
+    supabase
+      .from("meetings")
+      .select("*")
+      .eq("workspace_id", workspace.id)
+      .order("starts_at", { ascending: true })
+      .limit(50),
+    supabase
+      .from("activities")
+      .select("*")
+      .eq("workspace_id", workspace.id)
+      .eq("activity_type", "meeting_logged")
+      .order("occurred_at", { ascending: false })
+      .limit(30),
+  ]);
+
+  return {
+    meetings: (meetingsResult.data ?? []) as Array<Record<string, unknown>>,
+    legacyMeetingActivities: (activitiesResult.data ?? []) as ActivityRecord[],
+  };
+}
+
+export async function getNotesBriefsSurfaceData() {
+  const { workspace } = await getWorkspaceContext();
+  const supabase = await getSupabaseServerClient();
+
+  const [notesResult, docsResult] = await Promise.all([
+    supabase
+      .from("notes")
+      .select("*")
+      .eq("workspace_id", workspace.id)
+      .order("created_at", { ascending: false })
+      .limit(60),
+    supabase
+      .from("documents")
+      .select("*")
+      .eq("workspace_id", workspace.id)
+      .order("updated_at", { ascending: false })
+      .limit(60),
+  ]);
+
+  return {
+    notes: (notesResult.data ?? []) as Note[],
+    documents: (docsResult.data ?? []) as Array<Record<string, unknown>>,
+  };
+}
+
+export async function getActionsAuditSurfaceData() {
+  const { workspace } = await getWorkspaceContext();
+  const supabase = await getSupabaseServerClient();
+
+  const [timelineResult, executionsResult, syncRunsResult] = await Promise.all([
+    supabase
+      .from("timeline_events")
+      .select("*")
+      .eq("workspace_id", workspace.id)
+      .order("occurred_at", { ascending: false })
+      .limit(80),
+    supabase
+      .from("action_executions")
+      .select("*")
+      .eq("workspace_id", workspace.id)
+      .order("created_at", { ascending: false })
+      .limit(80),
+    supabase
+      .from("integration_sync_runs")
+      .select("*")
+      .eq("workspace_id", workspace.id)
+      .order("created_at", { ascending: false })
+      .limit(50),
+  ]);
+
+  return {
+    timelineEvents: (timelineResult.data ?? []) as TimelineEvent[],
+    actionExecutions: (executionsResult.data ?? []) as Array<Record<string, unknown>>,
+    syncRuns: (syncRunsResult.data ?? []) as Array<Record<string, unknown>>,
+  };
 }
