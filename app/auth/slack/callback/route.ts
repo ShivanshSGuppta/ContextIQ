@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
 
   if (!code || !state || !expectedState || state !== expectedState) {
     return NextResponse.redirect(
-      new URL("/overview?integration=slack&status=error&message=invalid_state", request.url),
+      new URL("/overview?integration=slack&status=error&message=slack_state_mismatch", request.url),
     );
   }
 
@@ -36,8 +36,14 @@ export async function GET(request: NextRequest) {
       exchangeSlackCodeForToken({ code }),
     ]);
 
+    if (!token.userAccessToken && !token.botAccessToken) {
+      return NextResponse.redirect(
+        new URL("/overview?integration=slack&status=error&message=slack_user_token_missing", request.url),
+      );
+    }
+
     const identity = await fetchSlackAuthIdentity({
-      accessToken: token.accessToken,
+      accessToken: token.userAccessToken ?? token.botAccessToken ?? "",
     });
 
     await upsertSlackIntegrationTokens({
@@ -46,9 +52,15 @@ export async function GET(request: NextRequest) {
       email: profile.email,
       teamId: token.teamId ?? identity.teamId,
       teamName: token.teamName ?? identity.teamName,
-      accessToken: token.accessToken,
-      tokenType: token.tokenType,
-      scopes: token.scopes,
+      enterpriseId: token.enterpriseId,
+      slackUserId: token.slackUserId ?? identity.userId,
+      userAccessToken: token.userAccessToken,
+      botAccessToken: token.botAccessToken,
+      userTokenType: token.userTokenType,
+      botTokenType: token.botTokenType,
+      userScopes: token.userScopes,
+      botScopes: token.botScopes,
+      needsReconnect: !token.userAccessToken,
     });
 
     return NextResponse.redirect(new URL(`${safeNext}?integration=slack&status=connected`, request.url));

@@ -13,6 +13,7 @@ Create a Supabase project and apply migrations in this exact order:
 5. `supabase/migrations/20260430_ai_native_workspace.sql`
 6. `supabase/migrations/20260502_outlook_slack_integrations.sql`
 7. `supabase/migrations/20260503_set_fixed_hydra_tenant_contextiq9.sql`
+8. `supabase/migrations/20260504_slack_user_scope_upgrade.sql`
 
 Required API values:
 

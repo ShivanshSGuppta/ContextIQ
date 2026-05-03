@@ -8,9 +8,15 @@ export async function upsertSlackIntegrationTokens(input: {
   email?: string | null;
   teamId?: string | null;
   teamName?: string | null;
-  accessToken: string;
-  tokenType?: string | null;
-  scopes?: string[];
+  enterpriseId?: string | null;
+  slackUserId?: string | null;
+  userAccessToken?: string | null;
+  botAccessToken?: string | null;
+  userTokenType?: string | null;
+  botTokenType?: string | null;
+  userScopes?: string[];
+  botScopes?: string[];
+  needsReconnect?: boolean;
 }) {
   const supabase = getSupabaseAdminClient();
 
@@ -22,9 +28,19 @@ export async function upsertSlackIntegrationTokens(input: {
       email: input.email ?? null,
       team_id: input.teamId ?? null,
       team_name: input.teamName ?? null,
-      access_token_encrypted: encryptSecret(input.accessToken),
-      token_type: input.tokenType ?? "bot",
-      scopes: input.scopes ?? [],
+      enterprise_id: input.enterpriseId ?? null,
+      slack_user_id: input.slackUserId ?? null,
+      user_access_token_encrypted: input.userAccessToken
+        ? encryptSecret(input.userAccessToken)
+        : null,
+      bot_access_token_encrypted: input.botAccessToken
+        ? encryptSecret(input.botAccessToken)
+        : null,
+      user_token_type: input.userTokenType ?? "user",
+      bot_token_type: input.botTokenType ?? "bot",
+      user_scopes: input.userScopes ?? [],
+      bot_scopes: input.botScopes ?? [],
+      needs_reconnect: input.needsReconnect ?? false,
       connected_at: new Date().toISOString(),
       sync_status: "idle",
       last_error: null,
@@ -55,7 +71,12 @@ export async function getDecryptedSlackIntegration(input: {
   const integration = data as SlackIntegration;
   return {
     ...integration,
-    access_token: decryptSecret(integration.access_token_encrypted),
+    user_access_token: integration.user_access_token_encrypted
+      ? decryptSecret(integration.user_access_token_encrypted)
+      : null,
+    bot_access_token: integration.bot_access_token_encrypted
+      ? decryptSecret(integration.bot_access_token_encrypted)
+      : null,
   };
 }
 
@@ -66,7 +87,7 @@ export async function getSlackIntegrationStatus(input: {
   const supabase = getSupabaseAdminClient();
   const { data, error } = await supabase
     .from("slack_integrations")
-    .select("email,team_id,team_name,last_synced_at,sync_status,last_error")
+    .select("email,team_id,team_name,slack_user_id,needs_reconnect,user_access_token_encrypted,bot_access_token_encrypted,last_synced_at,sync_status,last_error")
     .eq("workspace_id", input.workspaceId)
     .eq("user_id", input.userId)
     .eq("provider", "slack")
@@ -79,17 +100,24 @@ export async function getSlackIntegrationStatus(input: {
       email: null,
       team_id: null,
       team_name: null,
+      slack_user_id: null,
+      needs_reconnect: false,
       last_synced_at: null,
       sync_status: "idle",
       last_error: null,
     };
   }
 
+  const inferredNeedsReconnect =
+    Boolean(data.bot_access_token_encrypted) && !Boolean(data.user_access_token_encrypted);
+
   return {
     connected: true,
     email: (data.email as string | null) ?? null,
     team_id: (data.team_id as string | null) ?? null,
     team_name: (data.team_name as string | null) ?? null,
+    slack_user_id: (data.slack_user_id as string | null) ?? null,
+    needs_reconnect: Boolean(data.needs_reconnect) || inferredNeedsReconnect,
     last_synced_at: (data.last_synced_at as string | null) ?? null,
     sync_status: (data.sync_status as "idle" | "syncing" | "ok" | "error") ?? "idle",
     last_error: (data.last_error as string | null) ?? null,

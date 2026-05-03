@@ -346,13 +346,19 @@ export interface SlackIntegration {
   email: string | null;
   team_id: string | null;
   team_name: string | null;
-  access_token_encrypted: string;
-  token_type: string | null;
-  scopes: string[];
+  enterprise_id: string | null;
+  slack_user_id: string | null;
+  user_access_token_encrypted: string | null;
+  bot_access_token_encrypted: string | null;
+  user_token_type: string | null;
+  bot_token_type: string | null;
+  user_scopes: string[];
+  bot_scopes: string[];
   connected_at: string;
   last_synced_at: string | null;
   sync_status: "idle" | "syncing" | "ok" | "error";
   last_error: string | null;
+  needs_reconnect: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -362,6 +368,8 @@ export interface SlackIntegrationStatus {
   email: string | null;
   team_id: string | null;
   team_name: string | null;
+  slack_user_id: string | null;
+  needs_reconnect: boolean;
   last_synced_at: string | null;
   sync_status: "idle" | "syncing" | "ok" | "error";
   last_error: string | null;

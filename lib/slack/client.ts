@@ -20,8 +20,9 @@ export function buildSlackConnectUrl(input: { state: string }) {
 
   const params = new URLSearchParams({
     client_id: env.SLACK_CLIENT_ID,
-    scope:
-      "channels:history,groups:history,im:history,mpim:history,users:read,channels:read,groups:read,im:read,mpim:read",
+    scope: "channels:read,groups:read,im:read,mpim:read",
+    user_scope:
+      "channels:read,groups:read,im:read,mpim:read,channels:history,groups:history,im:history,mpim:history",
     redirect_uri: getSlackRedirectUri(),
     state: input.state,
   });
@@ -62,20 +63,31 @@ export async function exchangeSlackCodeForToken(input: { code: string }) {
     access_token?: string;
     token_type?: string;
     scope?: string;
-    authed_user?: { id?: string; access_token?: string; scope?: string };
+    authed_user?: {
+      id?: string;
+      access_token?: string;
+      scope?: string;
+      token_type?: string;
+    };
     team?: { id?: string; name?: string };
+    enterprise?: { id?: string; name?: string };
   };
 
-  if (!data.ok || !data.access_token) {
-    throw new Error(`Slack token exchange failed: ${data.error ?? "missing access token"}`);
+  if (!data.ok) {
+    throw new Error(`Slack token exchange failed: ${data.error ?? "oauth.v2.access failed"}`);
   }
 
   return {
-    accessToken: data.access_token,
-    tokenType: data.token_type ?? "bot",
-    scopes: data.scope ? data.scope.split(",") : [],
+    botAccessToken: data.access_token ?? null,
+    botTokenType: data.token_type ?? "bot",
+    botScopes: data.scope ? data.scope.split(",") : [],
+    userAccessToken: data.authed_user?.access_token ?? null,
+    userTokenType: data.authed_user?.token_type ?? "user",
+    userScopes: data.authed_user?.scope ? data.authed_user.scope.split(",") : [],
+    slackUserId: data.authed_user?.id ?? null,
     teamId: data.team?.id ?? null,
     teamName: data.team?.name ?? null,
+    enterpriseId: data.enterprise?.id ?? null,
   };
 }
 
@@ -128,7 +140,7 @@ export async function listSlackConversations(input: { accessToken: string; maxCh
     channels?: Array<{ id?: string; name?: string; is_im?: boolean; user?: string }>;
   }>({
     accessToken: input.accessToken,
-    path: "conversations.list",
+    path: "users.conversations",
     params,
   });
 

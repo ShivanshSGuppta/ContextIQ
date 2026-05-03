@@ -45,6 +45,12 @@ export async function syncWorkspaceSlackSignals(input: {
     throw new Error("Slack is not connected. Connect Slack first.");
   }
 
+  const accessToken = integration.user_access_token ?? integration.bot_access_token;
+  const usingBotFallback = !integration.user_access_token && Boolean(integration.bot_access_token);
+  if (!accessToken) {
+    throw new Error("Slack token missing. Reconnect Slack.");
+  }
+
   await updateSlackSyncState({
     workspaceId: input.workspace.id,
     userId: input.userId,
@@ -84,7 +90,7 @@ export async function syncWorkspaceSlackSignals(input: {
     );
 
     const channels = await listSlackConversations({
-      accessToken: integration.access_token,
+      accessToken,
       maxChannels,
     });
 
@@ -97,7 +103,7 @@ export async function syncWorkspaceSlackSignals(input: {
 
     for (const channel of channels) {
       const messages = await listSlackChannelMessages({
-        accessToken: integration.access_token,
+        accessToken,
         channelId: channel.id,
         limit: maxMessagesPerChannel,
       });
@@ -240,6 +246,7 @@ export async function syncWorkspaceSlackSignals(input: {
       workspaceId: input.workspace.id,
       userId: input.userId,
       detail: {
+        token_mode: usingBotFallback ? "bot_fallback" : "user_token",
         scanned: result.scanned,
         imported: result.imported,
         skipped: result.skipped,
