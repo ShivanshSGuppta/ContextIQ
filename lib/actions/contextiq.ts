@@ -6,6 +6,8 @@ import { filterMemoriesForContact } from "@/lib/context-memory";
 import { getAccountPageData, getWorkspaceContext } from "@/lib/data/contextiq";
 import { syncWorkspaceGmailMessages } from "@/lib/gmail/sync";
 import { syncWorkspaceLinkedInSignals } from "@/lib/linkedin/sync";
+import { syncWorkspaceOutlookMessages } from "@/lib/outlook/sync";
+import { syncWorkspaceSlackSignals } from "@/lib/slack/sync";
 import { getValidGmailAccessToken } from "@/lib/gmail/integration-store";
 import { createGmailDraft, sendGmailMessage } from "@/lib/gmail/client";
 import {
@@ -416,12 +418,97 @@ export async function triggerLinkedInWorkspaceSyncAction() {
   await syncLinkedInWorkspaceAction();
 }
 
+export async function syncOutlookWorkspaceAction() {
+  const { userId, workspace } = await getWorkspaceContext();
+  await assertIntegrationRateLimit({
+    workspaceId: workspace.id,
+    userId,
+    actionKey: "outlook_sync",
+    limit: 12,
+    windowMinutes: 30,
+  });
+  const result = await syncWorkspaceOutlookMessages({
+    userId,
+    workspace,
+    maxResults: 25,
+  });
+  await recordIntegrationActionEvent({
+    workspaceId: workspace.id,
+    userId,
+    actionKey: "outlook_sync",
+    metadata: {
+      fetched: result.fetched,
+      imported: result.imported,
+      skipped: result.skipped,
+      failed: result.failed,
+    },
+  });
+
+  revalidatePath("/overview");
+  revalidatePath("/activity");
+  revalidatePath("/contacts");
+  revalidatePath("/accounts", "layout");
+
+  return result;
+}
+
+export async function triggerOutlookWorkspaceSyncAction() {
+  await syncOutlookWorkspaceAction();
+}
+
+export async function syncSlackWorkspaceAction() {
+  const { userId, workspace } = await getWorkspaceContext();
+  await assertIntegrationRateLimit({
+    workspaceId: workspace.id,
+    userId,
+    actionKey: "slack_sync",
+    limit: 12,
+    windowMinutes: 30,
+  });
+  const result = await syncWorkspaceSlackSignals({
+    userId,
+    workspace,
+    maxChannels: 8,
+    maxMessagesPerChannel: 10,
+  });
+  await recordIntegrationActionEvent({
+    workspaceId: workspace.id,
+    userId,
+    actionKey: "slack_sync",
+    metadata: {
+      scanned: result.scanned,
+      imported: result.imported,
+      skipped: result.skipped,
+      failed: result.failed,
+    },
+  });
+
+  revalidatePath("/overview");
+  revalidatePath("/activity");
+  revalidatePath("/contacts");
+  revalidatePath("/accounts", "layout");
+
+  return result;
+}
+
+export async function triggerSlackWorkspaceSyncAction() {
+  await syncSlackWorkspaceAction();
+}
+
 export async function connectGmailAction() {
   return "/auth/sign-in?intent=gmail_connect&next=/overview";
 }
 
 export async function connectLinkedInAction() {
   return "/auth/linkedin/start?next=/overview";
+}
+
+export async function connectOutlookAction() {
+  return "/auth/sign-in?intent=outlook_connect&next=/overview";
+}
+
+export async function connectSlackAction() {
+  return "/auth/slack/start?next=/overview";
 }
 
 export async function prepareGmailFollowUpAction(

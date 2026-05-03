@@ -26,12 +26,16 @@ import {
   signOutAction,
   triggerGmailWorkspaceSyncAction,
   triggerLinkedInWorkspaceSyncAction,
+  triggerOutlookWorkspaceSyncAction,
+  triggerSlackWorkspaceSyncAction,
 } from "@/lib/actions/contextiq";
 import { cn, formatRelativeDate, getInitials } from "@/lib/utils";
 import type {
   Account,
   GmailIntegrationStatus,
   LinkedInIntegrationStatus,
+  OutlookIntegrationStatus,
+  SlackIntegrationStatus,
 } from "@/types";
 
 const navItems = [
@@ -113,6 +117,8 @@ export function WorkspaceShell({
   rail,
   gmailStatus = null,
   linkedInStatus = null,
+  outlookStatus = null,
+  slackStatus = null,
   children,
 }: {
   activeView:
@@ -136,11 +142,15 @@ export function WorkspaceShell({
   rail?: ReactNode;
   gmailStatus?: GmailIntegrationStatus | null;
   linkedInStatus?: LinkedInIntegrationStatus | null;
+  outlookStatus?: OutlookIntegrationStatus | null;
+  slackStatus?: SlackIntegrationStatus | null;
   children: ReactNode;
 }) {
   const effectiveNavItems = basePath === "/walk-in" ? walkInNavItems : navItems;
   const gmailConnected = Boolean(gmailStatus?.connected);
   const linkedInConnected = Boolean(linkedInStatus?.connected);
+  const outlookConnected = Boolean(outlookStatus?.connected);
+  const slackConnected = Boolean(slackStatus?.connected);
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#FDFDFD] font-sans text-[#0F172A] antialiased">
@@ -309,6 +319,40 @@ export function WorkspaceShell({
                       Connect LinkedIn
                     </Link>
                   )}
+
+                  {outlookConnected ? (
+                    <form action={triggerOutlookWorkspaceSyncAction} className="flex items-center gap-2">
+                      <button className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-bold text-slate-700 transition-colors hover:bg-slate-50">
+                        <Mail size={13} />
+                        Sync Outlook
+                      </button>
+                    </form>
+                  ) : (
+                    <Link
+                      href={`/auth/sign-in?intent=outlook_connect&next=${encodeURIComponent(`${basePath || ""}/overview`)}` as Route}
+                      className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-bold text-slate-700 transition-colors hover:bg-slate-50"
+                    >
+                      <Mail size={13} />
+                      Connect Outlook
+                    </Link>
+                  )}
+
+                  {slackConnected ? (
+                    <form action={triggerSlackWorkspaceSyncAction} className="flex items-center gap-2">
+                      <button className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-bold text-slate-700 transition-colors hover:bg-slate-50">
+                        <MessageSquare size={13} />
+                        Sync Slack
+                      </button>
+                    </form>
+                  ) : (
+                    <Link
+                      href={`/auth/slack/start?next=${encodeURIComponent(`${basePath || ""}/overview`)}` as Route}
+                      className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-bold text-slate-700 transition-colors hover:bg-slate-50"
+                    >
+                      <MessageSquare size={13} />
+                      Connect Slack
+                    </Link>
+                  )}
                 </div>
 
                 {gmailStatus?.last_synced_at ? (
@@ -325,6 +369,20 @@ export function WorkspaceShell({
                   <span className="text-[10px] font-medium text-rose-500">
                     LinkedIn sync error
                   </span>
+                ) : outlookStatus?.last_synced_at ? (
+                  <span className="text-[10px] font-medium text-slate-400">
+                    Outlook: {formatRelativeDate(outlookStatus.last_synced_at)}
+                  </span>
+                ) : outlookStatus?.last_error ? (
+                  <span className="text-[10px] font-medium text-rose-500">
+                    Outlook sync error
+                  </span>
+                ) : slackStatus?.last_synced_at ? (
+                  <span className="text-[10px] font-medium text-slate-400">
+                    Slack: {formatRelativeDate(slackStatus.last_synced_at)}
+                  </span>
+                ) : slackStatus?.last_error ? (
+                  <span className="text-[10px] font-medium text-rose-500">Slack sync error</span>
                 ) : null}
               </div>
             ) : null}

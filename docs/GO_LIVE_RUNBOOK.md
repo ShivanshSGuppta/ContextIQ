@@ -11,6 +11,8 @@ Create a Supabase project and apply migrations in this exact order:
 3. `supabase/migrations/20260427_linkedin_integrations.sql`
 4. `supabase/migrations/20260427_integration_action_events.sql`
 5. `supabase/migrations/20260430_ai_native_workspace.sql`
+6. `supabase/migrations/20260502_outlook_slack_integrations.sql`
+7. `supabase/migrations/20260503_set_fixed_hydra_tenant_contextiq9.sql`
 
 Required API values:
 

@@ -12,7 +12,7 @@ export function AuthPage({
   intent = "sign_in",
   returnTo = "/overview",
 }: {
-  intent?: "sign_in" | "gmail_connect";
+  intent?: "sign_in" | "gmail_connect" | "outlook_connect";
   returnTo?: string;
 }) {
   const [error, setError] = useState<string | null>(null);
@@ -56,8 +56,8 @@ export function AuthPage({
         const { error: authError } = await supabase.auth.signInWithOAuth({
           provider: "azure",
           options: {
-            redirectTo: `${window.location.origin}/auth/callback?intent=sign_in&provider=microsoft&next=${encodeURIComponent(returnTo)}`,
-            scopes: "openid profile email",
+            redirectTo: `${window.location.origin}/auth/callback?intent=${intent}&provider=microsoft&next=${encodeURIComponent(returnTo)}`,
+            scopes: "openid profile email offline_access Mail.Read User.Read",
           },
         });
 
@@ -96,11 +96,17 @@ export function AuthPage({
         <div className="mb-8 flex flex-col items-center text-center">
           <ContextIQLogo className="mb-5 h-14 w-14 rounded-2xl shadow-[0_4px_12px_rgba(15,23,42,0.15)]" />
           <h2 className="text-[24px] font-extrabold tracking-tight text-[#0F172A]">
-            {intent === "gmail_connect" ? "Connect Gmail" : "Private workspace sign-in"}
+            {intent === "gmail_connect"
+              ? "Connect Gmail"
+              : intent === "outlook_connect"
+                ? "Connect Outlook"
+                : "Private workspace sign-in"}
           </h2>
           <p className="mt-1 text-[14px] font-medium text-slate-500">
             {intent === "gmail_connect"
               ? "Grant Gmail read access so ContextIQ can sync inbox, archived, and starred email context."
+              : intent === "outlook_connect"
+                ? "Grant Outlook mail read access so ContextIQ can sync Microsoft 365 email context."
               : "Sign in with Google for full workspace access. Walk-in experience stays available."}
           </p>
         </div>
@@ -121,14 +127,14 @@ export function AuthPage({
             {intent === "gmail_connect" ? "Connect Google + Gmail" : "Continue with Google"}
           </button>
 
-          {intent === "sign_in" ? (
+          {intent === "sign_in" || intent === "outlook_connect" ? (
             <button
               type="button"
               onClick={handleMicrosoft}
               disabled={isPending}
               className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-[14px] font-bold text-[#0F172A] shadow-sm transition-colors hover:bg-slate-50 disabled:opacity-60"
             >
-              Continue with Microsoft
+              {intent === "outlook_connect" ? "Connect Microsoft + Outlook" : "Continue with Microsoft"}
             </button>
           ) : null}
 

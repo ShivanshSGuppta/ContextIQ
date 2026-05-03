@@ -8,6 +8,8 @@ import {
   getWorkspaceContext,
   getWorkspaceGmailStatus,
   getWorkspaceLinkedInStatus,
+  getWorkspaceOutlookStatus,
+  getWorkspaceSlackStatus,
 } from "@/lib/data/contextiq";
 
 export default async function AccountRoute({
@@ -23,13 +25,23 @@ export default async function AccountRoute({
     getAccountPageData(accountId),
     getWorkspaceGmailStatus(),
     getWorkspaceLinkedInStatus(),
+    getWorkspaceOutlookStatus(),
+    getWorkspaceSlackStatus(),
   ]).catch(() => null);
 
   if (!result) {
     notFound();
   }
 
-  const [{ workspace, profile }, accounts, accountData, gmailStatus, linkedInStatus] = result;
+  const [
+    { workspace, profile },
+    accounts,
+    accountData,
+    gmailStatus,
+    linkedInStatus,
+    outlookStatus,
+    slackStatus,
+  ] = result;
 
   return (
     <WorkspaceShell
@@ -39,6 +51,8 @@ export default async function AccountRoute({
       profileName={profile.full_name || profile.email || "ContextIQ"}
       gmailStatus={gmailStatus}
       linkedInStatus={linkedInStatus}
+      outlookStatus={outlookStatus}
+      slackStatus={slackStatus}
       activeAccountId={accountId}
     >
       <AccountPageClient

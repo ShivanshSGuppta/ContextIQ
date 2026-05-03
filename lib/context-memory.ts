@@ -239,6 +239,14 @@ function deriveWhyRecalled(
     return "Recovered from LinkedIn stakeholder context for this account";
   }
 
+  if (memory.metadata.integration_source === "outlook") {
+    return "Recovered from Outlook email context for this account";
+  }
+
+  if (memory.metadata.integration_source === "slack") {
+    return "Recovered from Slack signal context for this account";
+  }
+
   const topicReason = getTopicReason(memory.metadata.topic);
   if (topicReason) return topicReason;
 

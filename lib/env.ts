@@ -9,6 +9,10 @@ const serverEnvSchema = publicEnvSchema.extend({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   HYDRADB_API_KEY: z.string().min(1),
   HYDRADB_BASE_URL: z.url(),
+  HYDRADB_TENANT_ID: z
+    .string()
+    .regex(/^[a-z0-9-_.]+$/)
+    .optional(),
   GEMINI_API_KEY: z.string().min(1),
   GEMINI_MODEL: z.string().min(1),
   APP_BASE_URL: z.url(),
@@ -53,6 +57,7 @@ export function getServerEnv() {
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
     HYDRADB_API_KEY: process.env.HYDRADB_API_KEY,
     HYDRADB_BASE_URL: process.env.HYDRADB_BASE_URL,
+    HYDRADB_TENANT_ID: process.env.HYDRADB_TENANT_ID,
     GEMINI_API_KEY: process.env.GEMINI_API_KEY,
     GEMINI_MODEL: process.env.GEMINI_MODEL,
     APP_BASE_URL: process.env.APP_BASE_URL,

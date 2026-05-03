@@ -4,6 +4,8 @@ import { assertAuthorizedCronRequest } from "@/lib/cron/auth";
 import { syncWorkspaceGmailMessages } from "@/lib/gmail/sync";
 import { logIntegrationEvent } from "@/lib/integrations/telemetry";
 import { syncWorkspaceLinkedInSignals } from "@/lib/linkedin/sync";
+import { syncWorkspaceOutlookMessages } from "@/lib/outlook/sync";
+import { syncWorkspaceSlackSignals } from "@/lib/slack/sync";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export async function GET(request: NextRequest) {
@@ -88,6 +90,115 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: linkedInError.message }, { status: 500 });
   }
 
+  const outlookResult = {
+    processed: 0,
+    failed: 0,
+    total: 0,
+    details: [] as Array<Record<string, unknown>>,
+  };
+
+  const { data: outlookRows, error: outlookError } = await supabase
+    .from("outlook_integrations")
+    .select("workspace_id,user_id,workspaces:workspace_id(id,hydradb_tenant_id)")
+    .eq("provider", "outlook");
+
+  if (outlookError) {
+    return NextResponse.json({ ok: false, error: outlookError.message }, { status: 500 });
+  }
+
+  outlookResult.total = (outlookRows ?? []).length;
+
+  for (const row of outlookRows ?? []) {
+    const workspace = row.workspaces as { id: string; hydradb_tenant_id: string } | null;
+    if (!workspace?.id || !workspace.hydradb_tenant_id) {
+      outlookResult.failed += 1;
+      continue;
+    }
+
+    try {
+      const result = await syncWorkspaceOutlookMessages({
+        userId: row.user_id as string,
+        workspace: {
+          id: workspace.id,
+          owner_id: "",
+          name: "",
+          slug: null,
+          description: null,
+          hydradb_tenant_id: workspace.hydradb_tenant_id,
+        },
+        maxResults: 25,
+      });
+      outlookResult.processed += 1;
+      outlookResult.details.push({
+        workspace_id: workspace.id,
+        user_id: row.user_id,
+        ...result,
+      });
+    } catch (syncError) {
+      outlookResult.failed += 1;
+      outlookResult.details.push({
+        workspace_id: workspace.id,
+        user_id: row.user_id,
+        error: syncError instanceof Error ? syncError.message : "sync failed",
+      });
+    }
+  }
+
+  const slackResult = {
+    processed: 0,
+    failed: 0,
+    total: 0,
+    details: [] as Array<Record<string, unknown>>,
+  };
+
+  const { data: slackRows, error: slackError } = await supabase
+    .from("slack_integrations")
+    .select("workspace_id,user_id,workspaces:workspace_id(id,hydradb_tenant_id)")
+    .eq("provider", "slack");
+
+  if (slackError) {
+    return NextResponse.json({ ok: false, error: slackError.message }, { status: 500 });
+  }
+
+  slackResult.total = (slackRows ?? []).length;
+
+  for (const row of slackRows ?? []) {
+    const workspace = row.workspaces as { id: string; hydradb_tenant_id: string } | null;
+    if (!workspace?.id || !workspace.hydradb_tenant_id) {
+      slackResult.failed += 1;
+      continue;
+    }
+
+    try {
+      const result = await syncWorkspaceSlackSignals({
+        userId: row.user_id as string,
+        workspace: {
+          id: workspace.id,
+          owner_id: "",
+          name: "",
+          slug: null,
+          description: null,
+          hydradb_tenant_id: workspace.hydradb_tenant_id,
+        },
+        maxChannels: 8,
+        maxMessagesPerChannel: 10,
+      });
+      slackResult.processed += 1;
+      slackResult.details.push({
+        workspace_id: workspace.id,
+        user_id: row.user_id,
+        ...result,
+      });
+    } catch (syncError) {
+      slackResult.failed += 1;
+      slackResult.details.push({
+        workspace_id: workspace.id,
+        user_id: row.user_id,
+        error: syncError instanceof Error ? syncError.message : "sync failed",
+      });
+    }
+  }
+
   linkedInResult.total = (linkedInRows ?? []).length;
 
   for (const row of linkedInRows ?? []) {
@@ -140,6 +251,16 @@ export async function GET(request: NextRequest) {
         failed: linkedInResult.failed,
         total: linkedInResult.total,
       },
+      outlook: {
+        processed: outlookResult.processed,
+        failed: outlookResult.failed,
+        total: outlookResult.total,
+      },
+      slack: {
+        processed: slackResult.processed,
+        failed: slackResult.failed,
+        total: slackResult.total,
+      },
     },
   });
 
@@ -147,5 +268,7 @@ export async function GET(request: NextRequest) {
     ok: true,
     gmail: gmailResult,
     linkedin: linkedInResult,
+    outlook: outlookResult,
+    slack: slackResult,
   });
 }

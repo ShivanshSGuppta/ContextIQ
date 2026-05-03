@@ -160,7 +160,11 @@ export async function fullRecall(input: HydraRecallInput) {
         integration_source:
           memory.document_metadata?.integration_source == null
             ? null
-            : (String(memory.document_metadata.integration_source) as "gmail" | "linkedin"),
+            : (String(memory.document_metadata.integration_source) as
+                | "gmail"
+                | "linkedin"
+                | "outlook"
+                | "slack"),
       },
     }),
   );
@@ -176,8 +180,12 @@ export function buildNoteMemoryPayload(input: {
   const inferredIntegrationSource =
     normalizedTopic.includes("gmail") || input.note.source_type === "email_summary"
       ? "gmail"
+      : normalizedTopic.includes("outlook")
+        ? "outlook"
       : normalizedTopic.includes("linkedin")
         ? "linkedin"
+        : normalizedTopic.includes("slack")
+          ? "slack"
         : null;
 
   return {
@@ -214,8 +222,12 @@ export function buildActivityMemoryPayload(input: {
   const normalizedTopic = String(topicValue ?? "").toLowerCase();
   const inferredIntegrationSource = normalizedTopic.includes("gmail")
     ? "gmail"
+    : normalizedTopic.includes("outlook")
+      ? "outlook"
     : normalizedTopic.includes("linkedin")
       ? "linkedin"
+      : normalizedTopic.includes("slack")
+        ? "slack"
       : null;
 
   const content =

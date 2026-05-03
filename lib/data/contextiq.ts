@@ -4,6 +4,8 @@ import { requireSessionUser } from "@/lib/auth/session";
 import { getGmailIntegrationStatus } from "@/lib/gmail/integration-store";
 import { getWorkspaceProviderReadiness } from "@/lib/integrations/service";
 import { getLinkedInIntegrationStatus } from "@/lib/linkedin/integration-store";
+import { getOutlookIntegrationStatus } from "@/lib/outlook/integration-store";
+import { getSlackIntegrationStatus } from "@/lib/slack/integration-store";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { formatDateTime, formatRelativeDate } from "@/lib/utils";
 import type {
@@ -15,6 +17,7 @@ import type {
   GeneratedOutput,
   LinkedInIntegrationStatus,
   Note,
+  OutlookIntegrationStatus,
   OverviewCardSignal,
   ProviderReadinessStatus,
   Profile,
@@ -23,6 +26,7 @@ import type {
   TimelineItem,
   Workspace,
   WorkspaceOverviewData,
+  SlackIntegrationStatus,
 } from "@/types";
 
 function mapTimelineItems(
@@ -98,8 +102,12 @@ function buildFallbackMemories(input: {
       integration_source:
         note.source_type === "email_summary" || (note.topic ?? "").toLowerCase().includes("gmail")
           ? "gmail"
+          : (note.topic ?? "").toLowerCase().includes("outlook")
+            ? "outlook"
           : (note.topic ?? "").toLowerCase().includes("linkedin")
             ? "linkedin"
+            : (note.topic ?? "").toLowerCase().includes("slack")
+              ? "slack"
             : null,
     },
   }));
@@ -138,8 +146,16 @@ function buildFallbackMemories(input: {
             ? "gmail"
             : (typeof activity.metadata.topic === "string" ? activity.metadata.topic : "")
                   .toLowerCase()
+                  .includes("outlook")
+              ? "outlook"
+            : (typeof activity.metadata.topic === "string" ? activity.metadata.topic : "")
+                  .toLowerCase()
                   .includes("linkedin")
               ? "linkedin"
+              : (typeof activity.metadata.topic === "string" ? activity.metadata.topic : "")
+                    .toLowerCase()
+                    .includes("slack")
+                ? "slack"
               : null,
       },
     }));
@@ -408,8 +424,12 @@ export async function getWorkspaceRailMemories(limit = 6): Promise<RecalledMemor
             note.source_type === "email_summary" ||
             (note.topic ?? "").toLowerCase().includes("gmail")
               ? "gmail"
+              : (note.topic ?? "").toLowerCase().includes("outlook")
+                ? "outlook"
               : (note.topic ?? "").toLowerCase().includes("linkedin")
                 ? "linkedin"
+                : (note.topic ?? "").toLowerCase().includes("slack")
+                  ? "slack"
                 : null,
         },
       } satisfies RecalledMemory;
@@ -450,8 +470,16 @@ export async function getWorkspaceRailMemories(limit = 6): Promise<RecalledMemor
               ? "gmail"
               : (typeof activity.metadata.topic === "string" ? activity.metadata.topic : "")
                     .toLowerCase()
+                    .includes("outlook")
+                ? "outlook"
+              : (typeof activity.metadata.topic === "string" ? activity.metadata.topic : "")
+                    .toLowerCase()
                     .includes("linkedin")
                 ? "linkedin"
+                : (typeof activity.metadata.topic === "string" ? activity.metadata.topic : "")
+                      .toLowerCase()
+                      .includes("slack")
+                  ? "slack"
                 : null,
         },
       } satisfies RecalledMemory;
@@ -479,6 +507,24 @@ export async function getWorkspaceLinkedInStatus(): Promise<LinkedInIntegrationS
   const { workspace, userId } = await getWorkspaceContext();
 
   return getLinkedInIntegrationStatus({
+    workspaceId: workspace.id,
+    userId,
+  });
+}
+
+export async function getWorkspaceOutlookStatus(): Promise<OutlookIntegrationStatus> {
+  const { workspace, userId } = await getWorkspaceContext();
+
+  return getOutlookIntegrationStatus({
+    workspaceId: workspace.id,
+    userId,
+  });
+}
+
+export async function getWorkspaceSlackStatus(): Promise<SlackIntegrationStatus> {
+  const { workspace, userId } = await getWorkspaceContext();
+
+  return getSlackIntegrationStatus({
     workspaceId: workspace.id,
     userId,
   });

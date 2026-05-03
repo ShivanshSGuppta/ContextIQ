@@ -7,7 +7,9 @@ import {
   getWorkspaceContext,
   getWorkspaceGmailStatus,
   getWorkspaceLinkedInStatus,
+  getWorkspaceOutlookStatus,
   getWorkspaceRailMemories,
+  getWorkspaceSlackStatus,
 } from "@/lib/data/contextiq";
 
 export default async function ConversationsRoute() {
@@ -18,6 +20,8 @@ export default async function ConversationsRoute() {
     conversationsData,
     gmailStatus,
     linkedInStatus,
+    outlookStatus,
+    slackStatus,
   ] = await Promise.all([
     getWorkspaceContext(),
     getWorkspaceAccounts(),
@@ -25,6 +29,8 @@ export default async function ConversationsRoute() {
     getConversationsSurfaceData(),
     getWorkspaceGmailStatus(),
     getWorkspaceLinkedInStatus(),
+    getWorkspaceOutlookStatus(),
+    getWorkspaceSlackStatus(),
   ]);
 
   return (
@@ -35,6 +41,8 @@ export default async function ConversationsRoute() {
       profileName={profile.full_name || profile.email || "ContextIQ"}
       gmailStatus={gmailStatus}
       linkedInStatus={linkedInStatus}
+      outlookStatus={outlookStatus}
+      slackStatus={slackStatus}
       rail={<ContextRail memories={railMemories} />}
     >
       <ConversationsSurface

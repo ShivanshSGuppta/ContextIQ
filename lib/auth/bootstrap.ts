@@ -1,6 +1,7 @@
 import { slugify } from "@/lib/utils";
 import { ensureHydraTenant } from "@/lib/hydradb/client";
 import { seedDemoWorkspace } from "@/lib/data/demo-seed";
+import { getServerEnv } from "@/lib/env";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { Workspace } from "@/types";
 
@@ -10,6 +11,7 @@ export async function bootstrapUserWorkspace(params: {
   fullName: string | null;
   avatarUrl: string | null;
 }): Promise<Workspace> {
+  const env = getServerEnv();
   const supabase = getSupabaseAdminClient();
 
   const { error: profileError } = await supabase.from("profiles").upsert({
@@ -35,7 +37,8 @@ export async function bootstrapUserWorkspace(params: {
 
   const workspaceName = "ContextIQ Demo";
   const workspaceId = crypto.randomUUID();
-  const hydraTenantId = `workspace_${workspaceId}`;
+  const fixedTenantId = env.HYDRADB_TENANT_ID?.trim() ?? "";
+  const hydraTenantId = fixedTenantId.length > 0 ? fixedTenantId : `workspace_${workspaceId}`;
 
   await ensureHydraTenant({
     tenantId: hydraTenantId,

@@ -9,11 +9,16 @@ export default async function SignInPage({
   searchParams: Promise<{ intent?: string; next?: string }>;
 }) {
   const params = await searchParams;
-  const intent = params.intent === "gmail_connect" ? "gmail_connect" : "sign_in";
+  const intent =
+    params.intent === "gmail_connect"
+      ? "gmail_connect"
+      : params.intent === "outlook_connect"
+        ? "outlook_connect"
+        : "sign_in";
   const returnTo = params.next?.startsWith("/") ? params.next : "/overview";
   const user = await getSessionUser();
 
-  if (user && intent !== "gmail_connect") {
+  if (user && intent !== "gmail_connect" && intent !== "outlook_connect") {
     redirect("/overview");
   }
 

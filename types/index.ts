@@ -60,7 +60,7 @@ export interface RecalledMemoryMetadata {
   account_name?: string | null;
   contact_name?: string | null;
   contact_role_type?: string | null;
-  integration_source?: "gmail" | "linkedin" | null;
+  integration_source?: "gmail" | "linkedin" | "outlook" | "slack" | null;
 }
 
 export interface RecalledMemory {
@@ -298,6 +298,76 @@ export interface LinkedInIntegrationStatus {
 }
 
 export interface LinkedInSyncResult {
+  scanned: number;
+  imported: number;
+  skipped: number;
+  failed: number;
+}
+
+export interface OutlookIntegration {
+  id: string;
+  workspace_id: string;
+  user_id: string;
+  provider: string;
+  email: string | null;
+  access_token_encrypted: string;
+  refresh_token_encrypted: string | null;
+  token_type: string | null;
+  scopes: string[];
+  expires_at: string | null;
+  connected_at: string;
+  last_synced_at: string | null;
+  sync_status: "idle" | "syncing" | "ok" | "error";
+  last_error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OutlookIntegrationStatus {
+  connected: boolean;
+  email: string | null;
+  last_synced_at: string | null;
+  sync_status: "idle" | "syncing" | "ok" | "error";
+  last_error: string | null;
+}
+
+export interface OutlookSyncResult {
+  fetched: number;
+  imported: number;
+  skipped: number;
+  failed: number;
+}
+
+export interface SlackIntegration {
+  id: string;
+  workspace_id: string;
+  user_id: string;
+  provider: string;
+  email: string | null;
+  team_id: string | null;
+  team_name: string | null;
+  access_token_encrypted: string;
+  token_type: string | null;
+  scopes: string[];
+  connected_at: string;
+  last_synced_at: string | null;
+  sync_status: "idle" | "syncing" | "ok" | "error";
+  last_error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SlackIntegrationStatus {
+  connected: boolean;
+  email: string | null;
+  team_id: string | null;
+  team_name: string | null;
+  last_synced_at: string | null;
+  sync_status: "idle" | "syncing" | "ok" | "error";
+  last_error: string | null;
+}
+
+export interface SlackSyncResult {
   scanned: number;
   imported: number;
   skipped: number;

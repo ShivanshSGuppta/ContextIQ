@@ -4,6 +4,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { bootstrapUserWorkspace } from "@/lib/auth/bootstrap";
 import { getPublicEnv } from "@/lib/env";
 import { upsertGmailIntegrationTokens } from "@/lib/gmail/integration-store";
+import { fetchMicrosoftProfile } from "@/lib/outlook/client";
+import { upsertOutlookIntegrationTokens } from "@/lib/outlook/integration-store";
 
 export async function GET(request: NextRequest) {
   const env = getPublicEnv();
@@ -87,6 +89,26 @@ export async function GET(request: NextRequest) {
         "https://www.googleapis.com/auth/gmail.send",
         "https://www.googleapis.com/auth/gmail.compose",
       ],
+    });
+  }
+
+  if (
+    providerToken &&
+    provider === "microsoft" &&
+    (intent === "outlook_connect" || intent === "sign_in")
+  ) {
+    const microsoftProfile = await fetchMicrosoftProfile({
+      accessToken: providerToken,
+    }).catch(() => null);
+
+    await upsertOutlookIntegrationTokens({
+      workspaceId: workspace.id,
+      userId: user.id,
+      email: microsoftProfile?.email ?? user.email ?? null,
+      accessToken: providerToken,
+      refreshToken: providerRefreshToken ?? null,
+      tokenType: "Bearer",
+      scopes: ["openid", "profile", "email", "offline_access", "Mail.Read", "User.Read"],
     });
   }
 

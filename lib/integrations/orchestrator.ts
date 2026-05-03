@@ -2,6 +2,8 @@ import { createHash } from "crypto";
 
 import { syncWorkspaceGmailMessages } from "@/lib/gmail/sync";
 import { syncWorkspaceLinkedInSignals } from "@/lib/linkedin/sync";
+import { syncWorkspaceOutlookMessages } from "@/lib/outlook/sync";
+import { syncWorkspaceSlackSignals } from "@/lib/slack/sync";
 import { INTEGRATION_DEFAULT_CAPABILITIES, providerDisplayName } from "@/lib/integrations/catalog";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import type {
@@ -121,6 +123,39 @@ export async function connectIntegrationProvider(
     };
   }
 
+  if (provider === "outlook") {
+    await upsertConnection({
+      workspaceId: workspace.id,
+      userId,
+      provider,
+      status: "connected",
+      permissionScope: "openid profile email offline_access Mail.Read User.Read",
+    });
+    return {
+      ok: true,
+      mode: "redirect",
+      message: "Redirecting to Microsoft OAuth.",
+      redirectUrl: `/auth/sign-in?intent=outlook_connect&next=${encodeURIComponent("/overview")}`,
+    };
+  }
+
+  if (provider === "slack") {
+    await upsertConnection({
+      workspaceId: workspace.id,
+      userId,
+      provider,
+      status: "connected",
+      permissionScope:
+        "channels:history groups:history im:history mpim:history users:read channels:read groups:read im:read mpim:read",
+    });
+    return {
+      ok: true,
+      mode: "redirect",
+      message: "Redirecting to Slack OAuth.",
+      redirectUrl: `/auth/slack/start?next=${encodeURIComponent("/overview")}`,
+    };
+  }
+
   await upsertConnection({
     workspaceId: workspace.id,
     userId,
@@ -205,6 +240,56 @@ export async function syncIntegrationProvider(provider: IntegrationProvider): Pr
       details: sync,
     });
     return { ok: true, mode: "connected", message: "LinkedIn sync completed." };
+  }
+
+  if (provider === "outlook") {
+    const sync = await syncWorkspaceOutlookMessages({
+      userId,
+      workspace,
+      maxResults: 25,
+    });
+    await upsertConnection({
+      workspaceId: workspace.id,
+      userId,
+      provider,
+      status: "connected",
+      permissionScope: "openid profile email offline_access Mail.Read User.Read",
+    });
+    await supabase.from("integration_sync_runs").insert({
+      ...runBase,
+      status: "ok",
+      imported_count: sync.imported,
+      skipped_count: sync.skipped,
+      failed_count: sync.failed,
+      details: sync,
+    });
+    return { ok: true, mode: "connected", message: "Outlook sync completed." };
+  }
+
+  if (provider === "slack") {
+    const sync = await syncWorkspaceSlackSignals({
+      userId,
+      workspace,
+      maxChannels: 8,
+      maxMessagesPerChannel: 10,
+    });
+    await upsertConnection({
+      workspaceId: workspace.id,
+      userId,
+      provider,
+      status: "connected",
+      permissionScope:
+        "channels:history groups:history im:history mpim:history users:read channels:read groups:read im:read mpim:read",
+    });
+    await supabase.from("integration_sync_runs").insert({
+      ...runBase,
+      status: "ok",
+      imported_count: sync.imported,
+      skipped_count: sync.skipped,
+      failed_count: sync.failed,
+      details: sync,
+    });
+    return { ok: true, mode: "connected", message: "Slack sync completed." };
   }
 
   await upsertConnection({

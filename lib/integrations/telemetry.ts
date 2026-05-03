@@ -1,5 +1,5 @@
 export function logIntegrationEvent(input: {
-  source: "gmail" | "linkedin" | "cron";
+  source: "gmail" | "linkedin" | "outlook" | "slack" | "cron";
   event: string;
   workspaceId?: string;
   userId?: string;
